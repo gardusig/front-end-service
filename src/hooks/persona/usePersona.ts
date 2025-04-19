@@ -1,25 +1,47 @@
 import { useEffect, useState } from "react";
-import { Persona } from "../../types/Persona";
-import { DEFAULT_PERSONA, DEFAULT_PERSONA_ID } from "./constants";
+import { usePersonaContext } from "./usePersonaContext";
 import { getPersona } from "../../services/PersonaService";
+import { DEFAULT_PERSONA, DEFAULT_PERSONA_ID } from "./personaUtils";
+import { Persona } from "../../types/Persona";
 
-export function usePersona(personaId: string) {
+export const usePersona = () => {
+  const { personaId, setPersonaId, resetPersonaId } = usePersonaContext();
+
+  const [loading, setLoading] = useState(false);
   const [persona, setPersona] = useState<Persona>(DEFAULT_PERSONA);
 
-  function updatePersona(personaId: string) {
-    if (personaId === DEFAULT_PERSONA_ID) {
-      setPersona(DEFAULT_PERSONA);
-    }
-    const persona = getPersona(personaId);
-    setPersona(persona ?? DEFAULT_PERSONA);
-  }
-
   useEffect(() => {
-    updatePersona(personaId);
-  }, [personaId]);
+    let cancelled = false;
 
-  return {
-    persona,
-    updatePersona,
-  };
-}
+    const fetchPersona = async () => {
+      setLoading(true);
+      try {
+        const fetchedPersona = await getPersona(personaId);
+        if (!cancelled) {
+          setPersona(fetchedPersona);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.warn(
+            `[Persona] Failed to load persona ID "${personaId}":`,
+            error
+          );
+          setPersona(DEFAULT_PERSONA);
+          setPersonaId(DEFAULT_PERSONA_ID);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchPersona();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [personaId, setPersonaId]);
+
+  return { persona, setPersonaId, resetPersonaId, loading };
+};
