@@ -49,14 +49,8 @@ src/
 npm run lint
 ```
 
-> Uses strict recommended ESLint config with TS + React plugin rules.
-
----
-
 ## 📦 Building for Production
 
 ```
 npm run build
 ```
-
-This runs `tsc` type-checking and Vite’s production build.
