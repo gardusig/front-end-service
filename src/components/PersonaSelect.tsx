@@ -4,17 +4,21 @@ import { usePersona } from "../hooks/persona/usePersona";
 
 export default function PersonaSelect() {
     const { persona, setPersonaId, loading } = usePersona();
-    if (loading) {
-        return <p className="text-center">Loading persona...</p>;
-    }
+
+    const isKnownId = PERSONAS.some((p) => p.id === persona.id);
+    const currentValue = isKnownId ? persona.id : "";
 
     return (
         <SelectField
             label="Choose Persona"
-            value={persona.id}
+            value={currentValue}
             onChange={(e) => setPersonaId(e.target.value)}
             isDisabled={loading}
         >
+            <option value="" disabled>
+                -- Select a persona --
+            </option>
+
             {PERSONAS.map((p) => (
                 <option key={p.id} value={p.id}>
                     {p.name}
