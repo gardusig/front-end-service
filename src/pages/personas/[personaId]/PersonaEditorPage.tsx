@@ -1,109 +1,121 @@
-import { JSX, useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { usePersona } from "../../../hooks/persona/usePersona";
-import { useContext } from "react";
-import { CustomPersonaContext } from "../../../hooks/custom-persona/CustomPersonaContext";
+import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { PersonaLabel } from "../../../types/personaLabel";
-import PersonaPreview from "../../../components/PersonaPreview";
-import PersonaSelect from "../../../components/PersonaSelect";
-import { DEFAULT_CUSTOM_PERSONA } from "../../../hooks/custom-persona/customPersonaUtils";
+import { useCustomPersonaContext } from "../../../hooks/custom-persona/useCustomPersonaContext";
+import { CustomPersona } from "../../../types/customPersona";
 
-export default function PersonaEditorPage(): JSX.Element {
+export default function PersonaEditorPage() {
     const { personaId } = useParams();
     const navigate = useNavigate();
+    const { getCustomPersona, createOrUpdateCustomPersona } = useCustomPersonaContext();
 
-    const {
-        customPersonas,
-        loading,
-        saveCustomPersona,
-        removeCustomPersona,
-    } = useContext(CustomPersonaContext);
+    const [persona, setPersona] = useState<CustomPersona | null>(null);
 
-    const { persona, setPersonaId, loading: loadingPersona } = usePersona(personaId);
-
-    const customPersona = customPersonas.find((p) => p.id === personaId) ?? {
-        ...DEFAULT_CUSTOM_PERSONA,
-        id: personaId!,
-        persona,
+    const setLabel = (label: PersonaLabel) => {
+        if (!persona) return;
+        setPersona(prev => prev ? { ...prev, label } : prev);
     };
-
-    const [label, setLabel] = useState<PersonaLabel>(customPersona.label);
 
     useEffect(() => {
-        setLabel(customPersona.label);
-    }, [customPersona]);
+        if (!personaId) {
+            navigate("/not-found");
+            return;
+        }
+
+        try {
+            const foundPersona = getCustomPersona(personaId);
+            if (!foundPersona) {
+                navigate("/not-found");
+                return;
+            }
+            setPersona(foundPersona);
+        } catch (err) {
+            console.warn("Failed to fetch persona", err);
+            navigate("/not-found");
+        }
+    }, [personaId, getCustomPersona, navigate]);
 
     const handleSave = () => {
-        if (!personaId) return;
-        saveCustomPersona({ id: personaId, persona, label });
+        if (!persona) return;
+        createOrUpdateCustomPersona(persona);
         navigate("/personas");
     };
 
-    const handleDelete = () => {
-        if (!personaId) return;
-        removeCustomPersona(personaId);
-        navigate("/personas");
-    };
-
-    const isLoading = loading || loadingPersona;
+    if (!persona) {
+        return (
+            <main className="min-h-screen p-6 bg-gray-900 text-white">
+                <p className="text-center text-gray-300">Loading...</p>
+            </main>
+        );
+    }
 
     return (
-        <div className="min-h-screen p-4">
-            <div className="max-w-md mx-auto bg-white/10 backdrop-blur-md rounded-xl shadow-lg p-6 text-white space-y-6">
-                <h2 className="text-xl font-semibold text-center">Edit Custom Persona</h2>
+        <main className="min-h-screen p-6 bg-gray-900 text-white">
+            <section className="max-w-3xl mx-auto space-y-6">
+                <h1 className="text-2xl font-bold text-center">Edit Persona</h1>
 
-                {isLoading ? (
-                    <p className="text-center">Loading...</p>
-                ) : (
-                    <>
-                        <PersonaSelect
-                            value={persona.id}
-                            onChange={setPersonaId}
-                            loading={loadingPersona}
+
+                <div className="flex justify-center">
+                    {persona.persona.media.type === "image" || persona.persona.media.type === "gif" ? (
+                        <img
+                            src={persona.persona.media.url}
+                            alt={persona.persona.name}
+                            className="w-48 h-48 object-cover rounded shadow"
                         />
+                    ) : persona.persona.media.type === "video" ? (
+                        <video
+                            controls
+                            src={persona.persona.media.url}
+                            className="w-48 h-48 rounded shadow"
+                        />
+                    ) : (
+                        <p className="text-sm text-gray-400 italic">No media available</p>
+                    )}
+                </div>
 
-                        <div className="space-y-1">
-                            <label htmlFor="label-select" className="text-sm font-medium">
-                                Assign Label
-                            </label>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm mb-1">Name</label>
+                        <input
+                            type="text"
+                            disabled
+                            value={persona.persona.name}
+                            className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
+                        />
+                    </div>
 
-                            <select
-                                id="label-select"
-                                value={label}
-                                onChange={(e) => setLabel(e.target.value as PersonaLabel)}
-                                className="block w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-black shadow-sm"
-                            >
-                                {Object.values(PersonaLabel).map((lbl) => (
-                                    <option key={lbl} value={lbl}>
-                                        {lbl}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                    <div>
+                        <label className="block text-sm mb-1">Label</label>
+                        <select
+                            className="w-full p-2 rounded bg-gray-800 text-white border border-gray-700"
+                            value={persona.label}
+                            onChange={(e) => setLabel(e.target.value as PersonaLabel)}
+                        >
+                            {Object.values(PersonaLabel).map((labelOption) => (
+                                <option key={labelOption} value={labelOption}>
+                                    {labelOption}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
 
-                        <div className="flex gap-2">
-                            <button
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
-                                onClick={handleSave}
-                            >
-                                Save Persona
-                            </button>
+                <div className="flex justify-between">
+                    <button
+                        className="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-white"
+                        onClick={() => navigate("/personas")}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white"
+                        onClick={handleSave}
+                    >
+                        Save
+                    </button>
+                </div>
 
-                            {customPersonas.some((p) => p.id === personaId) && (
-                                <button
-                                    className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded"
-                                    onClick={handleDelete}
-                                >
-                                    Delete
-                                </button>
-                            )}
-                        </div>
-
-                        <hr className="border-white/30" />
-                        <PersonaPreview {...persona} />
-                    </>
-                )}
-            </div>
-        </div>
+            </section>
+        </main>
     );
 }

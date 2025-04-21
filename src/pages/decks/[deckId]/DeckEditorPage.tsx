@@ -1,77 +1,90 @@
-import { useParams } from "react-router-dom";
-import { useCustomPersona } from "../../../hooks/custom-persona/useCustomPersona";
-import { usePersonaDeck } from "../../../hooks/persona-deck/usePersonaDeck";
+import { useNavigate, useParams } from "react-router-dom";
+import { usePersonaDeckContext } from "../../../hooks/persona-deck/usePersonaDeckContext";
+import { useCustomPersonaContext } from "../../../hooks/custom-persona/useCustomPersonaContext";
+import { useMemo } from "react";
+import { CustomPersona } from "../../../types/customPersona";
+import { DEFAULT_CUSTOM_PERSONA } from "../../../hooks/custom-persona/customPersonaUtils";
+import { CustomPersonaCard } from "../../../components/CustomPersonaCard";
+import BackButton from "../../../components/button/BackButton";
+import AddButton from "../../../components/button/AddButton";
 
 export default function DeckEditorPage() {
-    const { deckId } = useParams();
-    const { personaDeck, loading, addPersonaToDeck, removePersonaFromDeck } = usePersonaDeck(deckId);
-    const { customPersonas, loadingList } = useCustomPersona();
+    const navigate = useNavigate();
+    const { deckId } = useParams<{ deckId: string }>();
 
-    const deckPersonas = personaDeck.customPersonaList;
-    const deckPersonaIds = new Set(deckPersonas.map((p) => p.id));
-    const availableToAdd = customPersonas.filter((p) => !deckPersonaIds.has(p.id));
+    const {
+        getPersonaDeck,
+        createOrUpdatePersonaDeck,
+        loading: loadingDeck,
+    } = usePersonaDeckContext();
 
-    const handleAdd = (id: string) => {
-        const persona = customPersonas.find((p) => p.id === id);
-        if (persona) {
-            addPersonaToDeck(persona);
-        }
+    const { createOrUpdateCustomPersona } = useCustomPersonaContext();
+
+    const deck = useMemo(() => {
+        return deckId ? getPersonaDeck(deckId) : undefined;
+    }, [deckId, getPersonaDeck]);
+
+    if (!deckId || (!loadingDeck && !deck)) {
+        navigate("/not-found");
+        return null;
+    }
+
+    const handleAddPersona = () => {
+        if (!deck) return;
+
+        const newPersona: CustomPersona = {
+            ...DEFAULT_CUSTOM_PERSONA,
+            id: `custom-persona-${crypto.randomUUID()}`,
+        };
+
+        createOrUpdateCustomPersona(newPersona);
+
+        const updatedDeck = {
+            ...deck,
+            customPersonaList: [...deck.customPersonaList, newPersona],
+        };
+
+        createOrUpdatePersonaDeck(updatedDeck);
     };
+
+    const handleRemovePersona = (personaId: string) => {
+        if (!deck) return;
+
+        const updatedDeck = {
+            ...deck,
+            customPersonaList: deck.customPersonaList.filter((p) => p.id !== personaId),
+        };
+
+        createOrUpdatePersonaDeck(updatedDeck);
+    };
+
+    if (loadingDeck) {
+        return (
+            <main className="min-h-screen p-6 bg-gray-900 text-white">
+                <p className="text-center text-gray-300">Loading deck...</p>
+            </main>
+        );
+    }
 
     return (
         <main className="min-h-screen p-6 bg-gray-900 text-white">
             <section className="max-w-4xl mx-auto space-y-6">
-                <header className="text-center">
-                    <h1 className="text-3xl font-bold">🗂️ Edit Deck: {deckId}</h1>
-                    <p className="text-gray-300 mt-2">Manage the personas inside this deck.</p>
-                </header>
+                <h1 className="text-2xl font-bold text-center">Edit Deck</h1>
 
-                {(loading || loadingList) ? (
-                    <p className="text-center text-gray-300">Loading deck...</p>
-                ) : (
-                    <>
-                        <div className="space-y-2">
-                            <label htmlFor="add-persona" className="block text-sm font-medium">
-                                Add Persona to Deck
-                            </label>
-                            <select
-                                id="add-persona"
-                                onChange={(e) => handleAdd(e.target.value)}
-                                className="w-full px-3 py-2 rounded text-black"
-                                defaultValue=""
-                            >
-                                <option value="" disabled>
-                                    -- Select a custom persona --
-                                </option>
-                                {availableToAdd.map((p) => (
-                                    <option key={p.id} value={p.id}>
-                                        {p.id} — {p.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                <div className="space-y-4">
+                    {deck?.customPersonaList.map((customPersona) => (
+                        <CustomPersonaCard
+                            key={customPersona.id}
+                            customPersona={customPersona}
+                            onRemove={() => handleRemovePersona(customPersona.id)}
+                        />
+                    ))}
+                </div>
 
-                        <ul className="space-y-4 mt-6">
-                            {deckPersonas.map((persona) => (
-                                <li
-                                    key={persona.id}
-                                    className="flex justify-between items-center p-4 bg-white/10 rounded-lg"
-                                >
-                                    <div>
-                                        <h2 className="text-lg font-semibold">{persona.id}</h2>
-                                        <p className="text-sm text-gray-300">{persona.label}</p>
-                                    </div>
-                                    <button
-                                        onClick={() => removePersonaFromDeck(persona.id)}
-                                        className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-sm"
-                                    >
-                                        Remove
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    </>
-                )}
+                <div className="flex justify-between">
+                    <BackButton to={"/decks"} />
+                    <AddButton onClick={handleAddPersona} label="Add Persona" />
+                </div>
             </section>
         </main>
     );

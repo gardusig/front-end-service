@@ -1,18 +1,29 @@
 import { useNavigate } from "react-router-dom";
-import { usePersonaDeckListContext } from "../../hooks/persona-deck/usePersonaDeckListContext";
 import { PersonaDeck } from "../../types/personaDeck";
+import { usePersonaDeckContext } from "../../hooks/persona-deck/usePersonaDeckContext";
 
 export default function DeckListPage() {
-    const { decks, loading, addDeck, removeDeck } = usePersonaDeckListContext();
+    const { decks, loading, createOrUpdatePersonaDeck, removePersonaDeck } = usePersonaDeckContext();
     const navigate = useNavigate();
+
+    const deckList = Object.values(decks);
 
     const handleAddDeck = () => {
         const newDeck: PersonaDeck = {
             id: `deck-${crypto.randomUUID()}`,
             customPersonaList: [],
         };
-        addDeck(newDeck);
+        createOrUpdatePersonaDeck(newDeck);
+        navigate(`/decks/${newDeck.id}`);
     };
+
+    if (loading) {
+        return (
+            <main className="min-h-screen p-6 bg-gray-900 text-white">
+                <p className="text-center text-gray-300">Loading decks...</p>
+            </main>
+        );
+    }
 
     return (
         <main className="min-h-screen p-6 bg-gray-900 text-white">
@@ -31,11 +42,11 @@ export default function DeckListPage() {
                     </button>
                 </div>
 
-                {loading ? (
-                    <p className="text-center text-gray-300">Loading decks...</p>
+                {deckList.length === 0 ? (
+                    <p className="text-center text-gray-400 italic">You haven’t created any decks yet.</p>
                 ) : (
                     <ul className="space-y-4">
-                        {decks.map((deck) => (
+                        {deckList.map((deck) => (
                             <li
                                 key={deck.id}
                                 className="flex items-center justify-between p-4 bg-white/10 backdrop-blur-md rounded-lg shadow"
@@ -56,7 +67,7 @@ export default function DeckListPage() {
                                     </button>
 
                                     <button
-                                        onClick={() => removeDeck(deck.id)}
+                                        onClick={() => removePersonaDeck(deck.id)}
                                         className="px-3 py-1 bg-red-600 hover:bg-red-700 text-sm rounded"
                                     >
                                         Delete

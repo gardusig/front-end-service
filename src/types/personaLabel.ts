@@ -6,3 +6,5 @@ export enum PersonaLabel {
   NARRATOR = "Narrator",
   RANDOM = "Random",
 }
+
+export const DEFAULT_PERSONA_LABEL: PersonaLabel = PersonaLabel.RANDOM;
