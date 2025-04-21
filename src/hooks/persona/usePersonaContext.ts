@@ -1,10 +1,19 @@
-import { useContext } from "react";
-import { PersonaContext } from "./PersonaContext";
+import { useEntityContext } from "../useEntityContext";
+import {
+    listPersonas,
+    createPersona,
+    updatePersona,
+    deletePersona,
+} from "../../services/personaService";
+import { Persona } from "../../types/persona";
+import { DEFAULT_PERSONA } from "./personaUtils";
 
-export const usePersonaContext = () => {
-  const context = useContext(PersonaContext);
-  if (!context) {
-    throw new Error("usePersonaContext must be used within a PersonaProvider");
-  }
-  return context;
+export const usePersonaContextValue = () => {
+    return useEntityContext<Persona>({
+        listFn: listPersonas,
+        createFn: createPersona,
+        updateFn: updatePersona,
+        deleteFn: deletePersona,
+        defaultEntity: DEFAULT_PERSONA,
+    });
 };

@@ -1,31 +1,24 @@
 import { useState } from "react";
 import fallbackImage from "../assets/default-persona.jpg";
-import { usePersona } from "../hooks/persona/usePersona";
+import { MediaType } from "../types/media";
+import { Persona } from "../types/persona";
 
-function isGif(url: string): boolean {
-  return url.toLowerCase().endsWith(".gif");
-}
-
-export default function PersonaPreview() {
-  const { persona, loading } = usePersona();
+export default function PersonaPreview(persona: Persona) {
   const [errored, setErrored] = useState(false);
 
-  if (loading) {
-    return <p className="text-center">Loading persona...</p>;
-  }
-
-  const src = errored ? fallbackImage : persona.image;
+  const src = errored ? fallbackImage : persona.media.url;
   const commonClasses =
     "mx-auto max-w-full max-h-96 rounded-3xl border border-gray-300 shadow object-contain";
 
   return (
     <div className="text-center space-y-2">
-      <label className="block text-sm font-medium text-gray-700">Current character</label>
+      <label className="block text-sm font-medium">Current character</label>
 
       <img
         src={src}
         alt={persona.name}
-        className={`${commonClasses} ${isGif(src) ? "animate-none" : ""}`}
+        className={`${commonClasses}`
+          + `${persona.media.type === MediaType.GIF ? "animate-none" : ""}`}
         onError={() => setErrored(true)}
       />
 

@@ -1,17 +1,31 @@
-import { PERSONAS } from "../data/personas";
-import {
-  DEFAULT_PERSONA,
-  DEFAULT_PERSONA_ID,
-} from "../hooks/persona/personaUtils";
-import { Persona } from "../types/Persona";
+import { personaDb } from "../db/personaDb";
+import { Persona } from "../types/persona";
 
-export async function getPersona(personaId: string): Promise<Persona> {
-  if (personaId === DEFAULT_PERSONA_ID) {
-    return DEFAULT_PERSONA;
+export async function createPersona(newPersona: Persona): Promise<Persona> {
+  if (personaDb.has(newPersona.id)) {
+    throw new Error("Persona ID already exists");
   }
-  const persona = PERSONAS.find((p) => p.id === personaId);
-  if (!persona) {
-    throw new Error(`Persona not found with id: ${personaId}`);
+  personaDb.set(newPersona.id, newPersona);
+  return newPersona;
+}
+
+export async function updatePersona(
+  id: string,
+  updates: Partial<Persona>
+): Promise<Persona> {
+  const existing = personaDb.get(id);
+  if (!existing) throw new Error(`Persona not found with id: ${id}`);
+  const updated = { ...existing, ...updates };
+  personaDb.set(id, updated);
+  return updated;
+}
+
+export async function deletePersona(id: string): Promise<void> {
+  if (!personaDb.delete(id)) {
+    throw new Error(`Persona not found with id: ${id}`);
   }
-  return persona;
+}
+
+export async function listPersonas(): Promise<Persona[]> {
+  return Array.from(personaDb.values());
 }

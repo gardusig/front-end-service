@@ -1,29 +1,35 @@
-import { SelectField } from "@aws-amplify/ui-react";
-import { PERSONAS } from "../data/personas";
-import { usePersona } from "../hooks/persona/usePersona";
+import { AVAILABLE_PERSONAS } from "../db/personaDb";
 
-export default function PersonaSelect() {
-    const { persona, setPersonaId, loading } = usePersona();
+type PersonaSelectProps = {
+    value: string;
+    onChange: (id: string) => void;
+    loading?: boolean;
+};
 
-    const isKnownId = PERSONAS.some((p) => p.id === persona.id);
-    const currentValue = isKnownId ? persona.id : "";
-
+export default function PersonaSelect({ value, onChange, loading = false }: PersonaSelectProps) {
     return (
-        <SelectField
-            label="Choose Persona"
-            value={currentValue}
-            onChange={(e) => setPersonaId(e.target.value)}
-            isDisabled={loading}
-        >
-            <option value="" disabled>
-                -- Select a persona --
-            </option>
+        <div className="space-y-1">
+            <label htmlFor="persona-select" className="text-sm font-medium">
+                Choose Persona
+            </label>
 
-            {PERSONAS.map((p) => (
-                <option key={p.id} value={p.id}>
-                    {p.name}
+            <select
+                id="persona-select"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                disabled={loading}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
+            >
+                <option value="" disabled>
+                    -- Select a persona --
                 </option>
-            ))}
-        </SelectField>
+
+                {AVAILABLE_PERSONAS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                        {p.name}
+                    </option>
+                ))}
+            </select>
+        </div>
     );
 }
